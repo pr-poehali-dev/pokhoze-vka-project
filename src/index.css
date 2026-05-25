@@ -166,6 +166,25 @@
   animation: pulse-ring 2s ease-in-out infinite;
 }
 
+/* Story progress bar */
+@keyframes story-progress {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+/* Hide scrollbar */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 /* Stagger delays */
 .delay-100 {
   animation-delay: 0.1s;
