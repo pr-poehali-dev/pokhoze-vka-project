@@ -1,0 +1,28 @@
+{
+  "name": "Волна — социальная сеть",
+  "short_name": "Волна",
+  "description": "Социальная сеть Волна — общение, фото и видео",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f0ebff",
+  "theme_color": "#7c3aed",
+  "lang": "ru",
+  "icons": [
+    {
+      "src": "https://cdn.poehali.dev/projects/cf94beb0-2b6f-4262-92f6-e0bdb9c55c56/files/1ba0871e-e231-4c59-b9a5-419b80cb3d93.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://cdn.poehali.dev/projects/cf94beb0-2b6f-4262-92f6-e0bdb9c55c56/files/1ba0871e-e231-4c59-b9a5-419b80cb3d93.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["social", "communication"],
+  "screenshots": [],
+  "prefer_related_applications": false
+}
