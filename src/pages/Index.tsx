@@ -60,7 +60,51 @@ const PROFILE_VIDEOS = [
   { id: 4, src: VIDEO_2, title: "Концерт", views: "21K", duration: "4:30", cover: PHOTO_1 },
 ];
 
-type Tab = "feed" | "messages" | "profile";
+// ── Subscription data ──────────────────────────────────────────
+const SUBSCRIPTION_PLANS = [
+  {
+    id: "base",
+    name: "Базовый",
+    price: 199,
+    period: "мес",
+    color: "#7c3aed",
+    gradient: "linear-gradient(135deg, #7c3aed, #a855f7)",
+    features: ["Все закрытые посты", "Фото-галерея 18+", "Ранний доступ к контенту"],
+    popular: false,
+  },
+  {
+    id: "premium",
+    name: "Премиум",
+    price: 499,
+    period: "мес",
+    color: "#ec4899",
+    gradient: "linear-gradient(135deg, #ec4899, #f97316)",
+    features: ["Всё из Базового", "Личные видео", "Личные сообщения с автором", "Видеозвонок 15 мин/мес"],
+    popular: true,
+  },
+  {
+    id: "vip",
+    name: "VIP",
+    price: 1490,
+    period: "мес",
+    color: "#f59e0b",
+    gradient: "linear-gradient(135deg, #f59e0b, #ef4444)",
+    features: ["Всё из Премиум", "Эксклюзивный контент", "Неограниченные звонки", "Приоритетный ответ", "Упоминание в историях"],
+    popular: false,
+  },
+];
+
+const LOCKED_POSTS = [
+  { id: 101, author: "Анастасия Волкова", avatar: AVATAR_ME, time: "30 мин назад", text: "Закрытое видео со съёмки 🎬 Только для подписчиков!", image: PHOTO_3, locked: true, tier: "base", likes: 234, comments: 41 },
+  { id: 102, author: "Анастасия Волкова", avatar: AVATAR_ME, time: "2 часа назад", text: "Эксклюзивная фотосессия 📸 VIP-контент", image: PHOTO_1, locked: true, tier: "premium", likes: 187, comments: 29 },
+];
+
+const CREATORS = [
+  { id: 1, name: "Анастасия Волкова", avatar: AVATAR_ME, subscribers: "3.2K", isSubscribed: false, tier: null as string | null },
+  { id: 2, name: "Алекс Морозов", avatar: AVATAR_ALEX, subscribers: "1.8K", isSubscribed: true, tier: "base" },
+];
+
+type Tab = "feed" | "messages" | "profile" | "creators";
 type ProfileTab = "photos" | "videos";
 
 // ── Ripple button ──────────────────────────────────────────────
@@ -198,6 +242,255 @@ function VideoCall({ caller, onEnd }: { caller: typeof CHATS[0]; onEnd: () => vo
   );
 }
 
+// ── Payment Sheet ──────────────────────────────────────────────
+function PaymentSheet({ plan, author, onClose, onSuccess }: {
+  plan: typeof SUBSCRIPTION_PLANS[0];
+  author: typeof CREATORS[0];
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [step, setStep] = useState<"plan" | "pay" | "success">("plan");
+  const [cardNum, setCardNum] = useState("");
+  const [expiry, setExpiry] = useState("");
+  const [cvv, setCvv] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const formatCard = (v: string) => v.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim();
+  const formatExpiry = (v: string) => { const d = v.replace(/\D/g, "").slice(0, 4); return d.length > 2 ? d.slice(0, 2) + "/" + d.slice(2) : d; };
+
+  const handlePay = () => {
+    setLoading(true);
+    setTimeout(() => { setLoading(false); setStep("success"); }, 1800);
+  };
+
+  if (step === "success") return (
+    <div className="fixed inset-0 z-[110] flex items-end justify-center" onClick={onClose}>
+      <div className="bg-white w-full max-w-lg rounded-t-3xl p-8 text-center animate-slide-up shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ background: plan.gradient }}>
+          <Icon name="Check" size={36} className="text-white" />
+        </div>
+        <h2 className="text-xl font-bold text-gray-900 mb-2">Подписка оформлена!</h2>
+        <p className="text-gray-500 text-sm mb-1">Тариф <span className="font-semibold" style={{ color: plan.color }}>{plan.name}</span> активирован</p>
+        <p className="text-gray-400 text-xs mb-6">Следующее списание через 30 дней · {plan.price} ₽</p>
+        <button onClick={() => { onSuccess(); onClose(); }}
+          className="w-full py-4 rounded-2xl text-white font-bold text-base active:opacity-80 transition-opacity"
+          style={{ background: plan.gradient }}>
+          Перейти к контенту
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 z-[110] flex items-end justify-center bg-black/40" onClick={onClose}>
+      <div className="bg-white w-full max-w-lg rounded-t-3xl shadow-2xl animate-slide-up" onClick={e => e.stopPropagation()}>
+        <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mt-4 mb-4" />
+
+        {step === "plan" && (
+          <div className="px-5 pb-6">
+            <div className="flex items-center gap-3 mb-5">
+              <img src={author.avatar} className="w-12 h-12 rounded-full object-cover" />
+              <div>
+                <div className="font-bold text-gray-900">{author.name}</div>
+                <div className="text-xs text-gray-400">{author.subscribers} подписчиков</div>
+              </div>
+            </div>
+            <h3 className="font-bold text-lg text-gray-900 mb-4">Выбери тариф</h3>
+            <div className="space-y-3 mb-5">
+              {SUBSCRIPTION_PLANS.map(p => (
+                <button key={p.id} onClick={() => { setStep("pay"); }}
+                  className={`w-full rounded-2xl p-4 text-left border-2 transition-all active:scale-[0.98] ${p.id === plan.id ? "border-purple-500 bg-purple-50" : "border-gray-100 bg-gray-50"} relative overflow-hidden`}>
+                  {p.popular && (
+                    <span className="absolute top-0 right-0 text-[10px] font-bold text-white px-3 py-1 rounded-bl-xl" style={{ background: p.gradient }}>ПОПУЛЯРНЫЙ</span>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-bold text-gray-900 mb-1">{p.name}</div>
+                      <div className="flex flex-wrap gap-1">
+                        {p.features.slice(0, 2).map(f => (
+                          <span key={f} className="text-xs text-gray-500 flex items-center gap-1">
+                            <Icon name="Check" size={10} className="text-green-500" />{f}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="text-right flex-shrink-0 ml-3">
+                      <div className="text-2xl font-black" style={{ color: p.color }}>{p.price} ₽</div>
+                      <div className="text-xs text-gray-400">/{p.period}</div>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+            <button onClick={onClose} className="w-full py-3 text-gray-400 text-sm">Отмена</button>
+          </div>
+        )}
+
+        {step === "pay" && (
+          <div className="px-5 pb-6">
+            <button onClick={() => setStep("plan")} className="flex items-center gap-1 text-purple-600 text-sm mb-4">
+              <Icon name="ArrowLeft" size={16} /> Назад
+            </button>
+            <h3 className="font-bold text-lg text-gray-900 mb-1">Оплата</h3>
+            <p className="text-gray-400 text-sm mb-5">Тариф <span className="font-semibold" style={{ color: plan.color }}>{plan.name}</span> · {plan.price} ₽/мес</p>
+
+            {/* Card */}
+            <div className="rounded-2xl p-4 mb-4 relative overflow-hidden" style={{ background: plan.gradient, minHeight: 90 }}>
+              <div className="absolute inset-0 opacity-10">
+                <div className="absolute top-4 right-4 w-20 h-20 rounded-full bg-white" />
+                <div className="absolute -bottom-4 -left-4 w-28 h-28 rounded-full bg-white" />
+              </div>
+              <div className="relative">
+                <div className="text-white/70 text-xs mb-2">Номер карты</div>
+                <div className="text-white font-mono text-lg tracking-widest">
+                  {cardNum || "•••• •••• •••• ••••"}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3 mb-5">
+              <input value={cardNum} onChange={e => setCardNum(formatCard(e.target.value))}
+                placeholder="0000 0000 0000 0000" maxLength={19}
+                className="w-full bg-gray-100 rounded-xl px-4 py-3.5 text-[15px] font-mono text-gray-800 outline-none focus:ring-2 focus:ring-purple-300 placeholder-gray-400" />
+              <div className="grid grid-cols-2 gap-3">
+                <input value={expiry} onChange={e => setExpiry(formatExpiry(e.target.value))}
+                  placeholder="ММ/ГГ" maxLength={5}
+                  className="bg-gray-100 rounded-xl px-4 py-3.5 text-[15px] font-mono text-gray-800 outline-none focus:ring-2 focus:ring-purple-300 placeholder-gray-400" />
+                <input value={cvv} onChange={e => setCvv(e.target.value.replace(/\D/g, "").slice(0, 3))}
+                  placeholder="CVV" maxLength={3} type="password"
+                  className="bg-gray-100 rounded-xl px-4 py-3.5 text-[15px] font-mono text-gray-800 outline-none focus:ring-2 focus:ring-purple-300 placeholder-gray-400" />
+              </div>
+            </div>
+
+            <button onClick={handlePay} disabled={loading || cardNum.length < 19}
+              className="w-full py-4 rounded-2xl text-white font-bold text-base transition-all active:opacity-80 disabled:opacity-50 flex items-center justify-center gap-2"
+              style={{ background: plan.gradient }}>
+              {loading ? (
+                <><Icon name="Loader2" size={20} className="animate-spin" /> Обработка...</>
+              ) : (
+                <><Icon name="Lock" size={18} /> Оплатить {plan.price} ₽</>
+              )}
+            </button>
+            <p className="text-center text-xs text-gray-400 mt-3 flex items-center justify-center gap-1">
+              <Icon name="Shield" size={12} /> Защищённое соединение · Демо-режим
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Locked Post Card ───────────────────────────────────────────
+function LockedPost({ post, isSubscribed, onSubscribe }: {
+  post: typeof LOCKED_POSTS[0];
+  isSubscribed: boolean;
+  onSubscribe: () => void;
+}) {
+  return (
+    <div className="bg-white mb-2">
+      <div className="flex items-center gap-3 px-4 py-3">
+        <img src={post.avatar} className="w-10 h-10 rounded-full object-cover" />
+        <div className="flex-1">
+          <div className="font-semibold text-[14px] text-gray-900">{post.author}</div>
+          <div className="text-xs text-gray-400">{post.time}</div>
+        </div>
+        <span className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full text-white"
+          style={{ background: post.tier === "premium" ? "linear-gradient(135deg,#ec4899,#f97316)" : "linear-gradient(135deg,#7c3aed,#a855f7)" }}>
+          <Icon name="Crown" size={11} />
+          {post.tier === "premium" ? "Премиум" : "Базовый"}
+        </span>
+      </div>
+      <p className="px-4 pb-3 text-[14px] text-gray-800">{post.text}</p>
+      <div className="relative overflow-hidden" style={{ height: 220 }}>
+        <img src={post.image} className="w-full h-full object-cover" style={{ filter: "blur(18px)", transform: "scale(1.1)" }} />
+        <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center gap-3 px-6">
+          <div className="w-14 h-14 rounded-full bg-white/15 backdrop-blur flex items-center justify-center border border-white/30">
+            <Icon name="Lock" size={24} className="text-white" />
+          </div>
+          <div className="text-center">
+            <p className="text-white font-semibold text-sm mb-1">Закрытый контент</p>
+            <p className="text-white/70 text-xs">Оформи подписку для просмотра</p>
+          </div>
+          <button onClick={onSubscribe}
+            className="px-6 py-2.5 rounded-full text-white font-bold text-sm active:opacity-80 transition-opacity"
+            style={{ background: post.tier === "premium" ? "linear-gradient(135deg,#ec4899,#f97316)" : "linear-gradient(135deg,#7c3aed,#a855f7)" }}>
+            Подписаться от 199 ₽/мес
+          </button>
+        </div>
+      </div>
+      <div className="flex items-center px-2 py-1">
+        <div className="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm text-gray-400">
+          <Icon name="Heart" size={20} /> <span>{post.likes}</span>
+        </div>
+        <div className="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm text-gray-400">
+          <Icon name="MessageCircle" size={20} /> <span>{post.comments}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Creators Page ──────────────────────────────────────────────
+function CreatorsPage({ onSubscribe }: { onSubscribe: (creator: typeof CREATORS[0]) => void }) {
+  return (
+    <div className="animate-fade-in">
+      <div className="px-4 py-4 bg-white border-b border-gray-100 mb-2">
+        <h2 className="font-bold text-lg text-gray-900">Авторы</h2>
+        <p className="text-sm text-gray-400">Поддержи любимых создателей</p>
+      </div>
+      {CREATORS.map((creator, i) => (
+        <div key={creator.id} className="bg-white mb-2 animate-fade-in" style={{ animationDelay: `${i * 0.1}s` }}>
+          {/* Cover */}
+          <div className="h-24 gradient-primary relative">
+            <div className="absolute inset-0 cover-overlay" />
+          </div>
+          <div className="px-4 pb-4 -mt-8">
+            <div className="flex items-end justify-between mb-3">
+              <div className="relative">
+                <img src={creator.avatar} className="w-16 h-16 rounded-2xl object-cover ring-3 ring-white shadow-lg" style={{ border: "3px solid white" }} />
+                <span className="online-dot absolute -bottom-0.5 -right-0.5" />
+              </div>
+              {creator.isSubscribed ? (
+                <div className="flex items-center gap-1.5 px-4 py-2 rounded-full border-2 border-green-400 text-green-600 text-sm font-semibold bg-green-50">
+                  <Icon name="Check" size={14} /> Подписан
+                </div>
+              ) : (
+                <button onClick={() => onSubscribe(creator)}
+                  className="px-4 py-2 rounded-full text-white text-sm font-semibold active:opacity-80 transition-opacity gradient-primary">
+                  Подписаться
+                </button>
+              )}
+            </div>
+            <div className="font-bold text-gray-900 mb-0.5">{creator.name}</div>
+            <div className="text-sm text-gray-400 mb-3">{creator.subscribers} подписчиков</div>
+
+            {/* Tiers preview */}
+            <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+              {SUBSCRIPTION_PLANS.map(plan => (
+                <div key={plan.id} className="flex-shrink-0 rounded-xl p-3 text-white text-xs min-w-[110px]" style={{ background: plan.gradient }}>
+                  <div className="font-bold mb-1">{plan.name}</div>
+                  <div className="text-white/80 text-[11px] mb-2">{plan.features[0]}</div>
+                  <div className="font-black text-base">{plan.price} ₽<span className="text-white/70 font-normal text-[10px]">/мес</span></div>
+                </div>
+              ))}
+            </div>
+
+            {creator.isSubscribed && creator.tier && (
+              <div className="mt-3 flex items-center gap-2 bg-green-50 rounded-xl px-3 py-2">
+                <Icon name="Crown" size={14} className="text-green-600" />
+                <span className="text-xs text-green-700 font-medium">
+                  Активна: {SUBSCRIPTION_PLANS.find(p => p.id === creator.tier)?.name} · {SUBSCRIPTION_PLANS.find(p => p.id === creator.tier)?.price} ₽/мес
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── FAB ───────────────────────────────────────────────────────
 function FAB({ onClick }: { onClick: () => void }) {
   return (
@@ -221,6 +514,9 @@ export default function Index() {
   const [storyIdx, setStoryIdx] = useState<number | null>(null);
   const [videoCallChat, setVideoCallChat] = useState<typeof CHATS[0] | null>(null);
   const [showNewPost, setShowNewPost] = useState(false);
+  const [paymentTarget, setPaymentTarget] = useState<{ creator: typeof CREATORS[0] } | null>(null);
+  const [subscribedCreators, setSubscribedCreators] = useState<Set<number>>(new Set([2]));
+  const [creators, setCreators] = useState(CREATORS);
 
   const activeChat = CHATS.find(c => c.id === activeChatId);
   const chatMessages = activeChatId ? (messages[activeChatId] || []) : [];
@@ -243,12 +539,26 @@ export default function Index() {
 
   const NAV = [
     { id: "feed" as Tab, icon: "Home", label: "Лента" },
+    { id: "creators" as Tab, icon: "Crown", label: "Авторы" },
     { id: "messages" as Tab, icon: "MessageCircle", label: "Чаты", badge: 2 },
     { id: "profile" as Tab, icon: "User", label: "Профиль" },
   ];
 
   return (
     <div className="min-h-screen bg-[#f6f2ff] font-['Golos_Text',sans-serif]">
+      {paymentTarget && (
+        <PaymentSheet
+          plan={SUBSCRIPTION_PLANS[1]}
+          author={paymentTarget.creator}
+          onClose={() => setPaymentTarget(null)}
+          onSuccess={() => {
+            setCreators(prev => prev.map(c =>
+              c.id === paymentTarget.creator.id ? { ...c, isSubscribed: true, tier: "premium" } : c
+            ));
+            setSubscribedCreators(prev => new Set([...prev, paymentTarget.creator.id]));
+          }}
+        />
+      )}
       {videoCallChat && <VideoCall caller={videoCallChat} onEnd={() => setVideoCallChat(null)} />}
       {storyIdx !== null && (
         <StoriesViewer story={STORIES[storyIdx]} current={storyIdx} total={STORIES.length}
@@ -416,7 +726,24 @@ export default function Index() {
                 </div>
               ))}
             </div>
+
+            {/* Locked posts in feed */}
+            {LOCKED_POSTS.map((post, i) => (
+              <LockedPost
+                key={post.id}
+                post={post}
+                isSubscribed={subscribedCreators.has(1)}
+                onSubscribe={() => setPaymentTarget({ creator: CREATORS[0] })}
+              />
+            ))}
           </div>
+        )}
+
+        {/* CREATORS */}
+        {activeTab === "creators" && (
+          <CreatorsPage
+            onSubscribe={(creator) => setPaymentTarget({ creator })}
+          />
         )}
 
         {/* MESSAGES */}
